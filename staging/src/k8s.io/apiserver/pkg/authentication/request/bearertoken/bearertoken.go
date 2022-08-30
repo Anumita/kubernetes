@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/warning"
+	"k8s.io/klog/v2"
 )
 
 const (
@@ -49,6 +50,8 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.R
 		return nil, false, nil
 	}
 
+	klog.Infof("AUTH FULL %s", auth)
+
 	token := parts[1]
 
 	// Empty bearer tokens aren't valid
@@ -60,15 +63,19 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.R
 		return nil, false, nil
 	}
 
+	klog.Infof("TOKEN %s", token)
+
 	resp, ok, err := a.auth.AuthenticateToken(req.Context(), token)
 	// if we authenticated successfully, go ahead and remove the bearer token so that no one
 	// is ever tempted to use it inside of the API server
 	if ok {
+		klog.Info("IT WAS OKAY")
 		req.Header.Del("Authorization")
 	}
 
 	// If the token authenticator didn't error, provide a default error
 	if !ok && err == nil {
+		klog.Info("IT IS ERROR")
 		err = invalidToken
 	}
 

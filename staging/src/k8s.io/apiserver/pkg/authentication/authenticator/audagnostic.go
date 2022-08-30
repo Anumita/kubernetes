@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"k8s.io/klog/v2"
 )
 
 func authenticate(ctx context.Context, implicitAuds Audiences, authenticate func() (*Response, bool, error)) (*Response, bool, error) {
@@ -27,10 +28,14 @@ func authenticate(ctx context.Context, implicitAuds Audiences, authenticate func
 	// We can remove this once api audiences is never empty. That will probably
 	// be N releases after TokenRequest is GA.
 	if !ok {
+		klog.Info("AUDSFROM IS NOT OK")
 		return authenticate()
 	}
+
+	klog.Infof("TARGETAUDS is %v", targetAuds)
 	auds := implicitAuds.Intersect(targetAuds)
 	if len(auds) == 0 {
+		klog.Info("AUDS IS 0")
 		return nil, false, nil
 	}
 	resp, ok, err := authenticate()
@@ -38,10 +43,12 @@ func authenticate(ctx context.Context, implicitAuds Audiences, authenticate func
 		return nil, false, err
 	}
 	if len(resp.Audiences) > 0 {
+		klog.Infof("AFTER authenticate is %v, %t", err, ok)
 		// maybe the authenticator was audience aware after all.
 		return nil, false, fmt.Errorf("audience agnostic authenticator wrapped an authenticator that returned audiences: %q", resp.Audiences)
 	}
 	resp.Audiences = auds
+	klog.Infof("AUDS is %v", resp.Audiences)
 	return resp, true, nil
 }
 
